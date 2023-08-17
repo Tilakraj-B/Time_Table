@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -16,15 +17,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
@@ -43,167 +48,24 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.drawToBitmap
 import coil.compose.rememberAsyncImagePainter
 import com.example.timetable.ViewModels.TimeTableViewModel
+import com.vanpra.composematerialdialogs.MaterialDialog
+import com.vanpra.composematerialdialogs.color.ColorPalette
+import com.vanpra.composematerialdialogs.color.colorChooser
+import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@Composable
-fun TimeTable(
-    viewModel : TimeTableViewModel
-) {
-    // Each cell of a column must have the same weight.
-    var daySize by remember { mutableStateOf(0.dp) }
-    var timeSize by remember { mutableStateOf(0.dp) }
-    var subjectHeight by remember { mutableStateOf(0.dp) }
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val state = viewModel.state.value
-    val scrollState = rememberScrollState()
-
-
-    Column(
-        modifier = Modifier
-    ) {
-        val snapShot = CaptureBitmap {
-            LazyColumn(
-                modifier = Modifier
-            ) {
-
-                item {
-                    Row(
-                        modifier = Modifier
-                    ) {
-                        Text(
-                            text = "00:00-00:00",
-                            color = Color.White,
-                            modifier = Modifier
-                                .border(1.dp, Color.Black)
-                                .padding(8.dp)
-                                .onGloballyPositioned {
-                                    daySize = with(density) {
-                                        it.size.width.toDp()
-                                    }
-                                }
-                        )
-                        Row(
-                            modifier = Modifier.horizontalScroll(scrollState, true)
-                        ) {
-                            for (time in state.timeList) {
-                                if (state.timeMap[time] == true) {
-                                    Text(
-                                        text = time,
-                                        modifier = Modifier
-                                            .border(1.dp, Color.Black)
-                                            .padding(8.dp)
-                                            .width(daySize)
-
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                items(state.dayList.size) { index ->
-                    val day = state.dayList[index]
-                    Row(
-                        modifier = Modifier
-                            .height(intrinsicSize = IntrinsicSize.Max)
-                            .border(1.dp, Color.Black),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .border(1.dp, Color.Black)
-                                .fillMaxHeight()
-                        ){
-                            Text(
-                                text = day,
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .width(daySize)
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.horizontalScroll(scrollState, true, )
-                        ) {
-                            for (time in state.timeList) {
-                                var subjectlist = mutableListOf<String>()
-                                if (state.subjectMap.contains(Pair(day, time))) {
-                                    subjectlist = state.subjectMap[Pair(day, time)]!!
-                                }
-                                if (subjectlist.size == 0) {
-                                    subjectlist.add("")
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .border(1.dp, Color.Black)
-                                        .fillMaxHeight()
-                                        .wrapContentWidth()
-                                ) {
-                                    Column() {
-                                        for (subject in subjectlist) {
-                                            Text(
-                                                text = subject,
-                                                modifier = Modifier
-                                                    .padding(8.dp)
-                                                    .width(daySize)
-                                            )
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                    }
-
-                }
-                item{
-
-                }
-
-            }
-        }
-        Row(
-            modifier = Modifier.padding(10.dp),
-        ){
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        Log.d("NNNNNNNNNNN","NNNNNNNNNN")
-                        val bitmap = snapShot.invoke()
-                        Log.d("NNNNNNNNNNN"," NNNN22222222 ")
-                        viewModel.onEvent(TimeTableViewModel.UIEvent.GetUri(bitmap,context))
-                    }
-                }
-            ) {
-                Text(
-                    text = "Download Image",
-                    modifier = Modifier.padding(5.dp)
-                )
-            }
-            Button(
-                onClick = { /*TODO*/ }
-            ) {
-                Text(
-                    text = "Download Pdf",
-                    modifier = Modifier.padding(5.dp)
-                )
-            }
-        }
-
-    }
-}
 
 @Composable
 fun CaptureBitmap(
@@ -237,10 +99,8 @@ fun CaptureBitmap(
     )
 
     /** returning callback to bitmap **/
-    Log.d("TimeTable", "CaptureBitmap: ")
     return ::captureBitmap
 }
-
 
 
 @Composable
@@ -269,6 +129,174 @@ fun ScalableComposable(content: @Composable () -> Unit) {
         }
     }
 }
+
+
+
+
+@Composable
+fun TimeTable(
+    viewModel: TimeTableViewModel,
+){
+    val state = viewModel.state.value
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val blockWidth = screenWidth/(state.timeMap.size + 1)
+    var Style = MaterialTheme.typography.bodySmall
+    var textStyle by remember{ mutableStateOf(Style) }
+    val context = LocalContext.current
+    textStyle = textStyle.copy(
+        textAlign = TextAlign.Center
+    )
+    val screenHeight = configuration.screenHeightDp.dp
+
+
+    Box(
+        modifier = Modifier
+    ) {
+
+
+
+        Column(
+            modifier = Modifier
+                .onGloballyPositioned {
+//                val columnSize = it.size.height.dp
+//                if(columnSize > screenHeight){
+//                    textStyle = textStyle.copy(
+//                        fontSize = textStyle.fontSize * 0.95
+//                    )
+//                }
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            val bitmapImage = CaptureBitmap {
+                Column(
+                    modifier = Modifier
+                        .padding(1.dp)
+                        .background(Color.White),
+
+                    ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(blockWidth)
+                                .border(1.dp, Color.Black)
+                        ) {
+                            Text(
+                                text = "00:00-00:00",
+                                modifier = Modifier.padding(5.dp),
+                                style = textStyle.copy(
+                                    color = Color.White
+                                ),
+                                softWrap = false,
+                                onTextLayout = { result ->
+                                    if (result.didOverflowWidth) {
+                                        textStyle = textStyle.copy(
+                                            fontSize = textStyle.fontSize * 0.95
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                        for (time in state.timeList) {
+                            if (state.timeMap[time] == true) {
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(blockWidth)
+                                        .border(1.dp, Color.Black)
+                                ) {
+                                    Text(
+                                        text = time,
+                                        modifier = Modifier.padding(5.dp),
+                                        style = textStyle,
+                                        softWrap = false,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    for (day in state.dayList) {
+                        Row(
+                            modifier = Modifier
+                                .height(intrinsicSize = IntrinsicSize.Max)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(blockWidth)
+                                    .border(1.dp, Color.Black)
+                                    .fillMaxHeight()
+                            ) {
+                                Text(
+                                    text = day,
+                                    modifier = Modifier.padding(5.dp),
+                                    style = textStyle,
+                                    softWrap = false,
+                                )
+                            }
+                            for (time in state.timeList) {
+                                if (state.timeMap[time] == true) {
+
+                                    var subjectList = mutableListOf<String>()
+                                    if (state.subjectMap.contains(Pair(day, time))) {
+                                        subjectList = state.subjectMap[Pair(day, time)]!!
+                                    }
+                                    if (subjectList.size == 0) {
+                                        subjectList.add(" ")
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .border(1.dp, Color.Black)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .wrapContentHeight()
+
+                                        ) {
+                                            for (subject in subjectList) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .width(blockWidth)
+                                                        .padding(5.dp)
+                                                ) {
+                                                    Text(
+                                                        text = subject,
+                                                        style = textStyle,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+                    }
+
+                }
+            }
+
+            Button(
+                onClick = {
+                    val image = bitmapImage.invoke()
+                    viewModel.onEvent(TimeTableViewModel.UIEvent.GetUri(image, context))
+                }
+
+            ) {
+                Text(text = "Save Image")
+            }
+        }
+    }
+
+
+
+}
+
 
 
 

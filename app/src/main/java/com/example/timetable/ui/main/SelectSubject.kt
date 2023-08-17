@@ -17,10 +17,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +31,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -49,11 +52,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.example.timetable.ViewModels.SelectSubjectViewModel
 import com.example.timetable.model.Subject
+import com.vanpra.composematerialdialogs.MaterialDialog
+import com.vanpra.composematerialdialogs.color.ColorPalette
+import com.vanpra.composematerialdialogs.color.colorChooser
+import com.vanpra.composematerialdialogs.rememberMaterialDialogState
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,9 +86,49 @@ fun SelectSubject(
 
     viewModel.onEvent(SelectSubjectViewModel.UIEvent.FetchSubjectList)
 
+    val dialogState = rememberMaterialDialogState()
+    if(viewModel.state.value.colorPickerDialogState.value == true){
+        dialogState.show()
+    }
+
+
     Box(
         modifier = Modifier
     ) {
+
+        Box(
+            modifier = Modifier.padding(10.dp)
+        ){
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                var currentColor by remember { mutableStateOf(Color.White) }
+                Text(text = "Select Color")
+                Divider(thickness = 1.dp, color = Color.Gray)
+                MaterialDialog(
+                    dialogState = dialogState
+                ) {
+                    colorChooser(
+                        colors = ColorPalette.Primary,
+                        waitForPositiveButton = false
+                    ){color ->
+                        currentColor = color
+                    }
+                }
+                IconButton(
+                    onClick = {
+
+                    }
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = "Pick Color")
+                }
+            }
+        }
+
+
+
+
+
         Column(
             modifier = Modifier,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -209,6 +257,7 @@ fun SelectSubject(
 
                                             IconButton(
                                                 onClick = {
+                                                    viewModel.onEvent(SelectSubjectViewModel.UIEvent.ChangeStateColorPicker)
                                                 }
                                             ) {
                                                 Icon(

@@ -1,5 +1,6 @@
 package com.example.timetable.navigation
 
+import New
 import SelectSession
 import TimeTable
 import android.util.Log
@@ -23,7 +24,6 @@ import com.example.timetable.repository.SelectSubjectRepo
 import com.example.timetable.retrofit.SelectSession.SelectSessionRetrofitInstance
 import com.example.timetable.retrofit.SelectSubject.SelectSubjectRetrofitInstance
 import com.example.timetable.ui.main.SelectSubject
-import com.example.timetable.ui.main.Temp
 
 @Composable
 fun NavHost(
@@ -84,14 +84,12 @@ fun NavHost(
             )
         }
 
-
         composable(
-            route = Route.TempScreeen.route,
+            route = Route.NewScreen.route
         ){
-            Temp(
-                sharedViewModel
-            )
+            New(viewModel = sharedViewModel)
         }
+
 
     }
 

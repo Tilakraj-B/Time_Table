@@ -43,6 +43,7 @@ class SelectSubjectViewModel constructor(
          data class ChangeFocus(val focusRequester: FocusRequester,val focusManager: FocusManager) : UIEvent()
          data class RemoveFromSelectedList(val subject : Subject) : UIEvent()
          object NavigateTimeTable : UIEvent()
+         object ChangeStateColorPicker : UIEvent()
      }
 
      data class UIState(
@@ -53,6 +54,7 @@ class SelectSubjectViewModel constructor(
          val allSubjectList: MutableLiveData<List<Subject>> = MutableLiveData<List<Subject>>(),
          val subjectList : MutableLiveData<List<Subject>> = allSubjectList,
          var isFocusedOnTextField : Boolean = false,
+         var colorPickerDialogState : MutableLiveData<Boolean> = MutableLiveData(false)
      )
 
 
@@ -141,6 +143,12 @@ class SelectSubjectViewModel constructor(
                     sharedViewModel.getSubjectList(state.value.selectedSubjectList.value!!.toList())
                     navController.navigate(Route.TimeTableScreen.route)
                 }
+            }
+
+            is UIEvent.ChangeStateColorPicker -> {
+                _state.value = state.value.copy(
+                    colorPickerDialogState = MutableLiveData(!state.value.colorPickerDialogState.value!!)
+                )
             }
         }
     }

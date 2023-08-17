@@ -1,49 +1,24 @@
 package com.example.timetable.ViewModels
 
-import android.content.ContentResolver
-import android.content.ContentValues
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.media.MediaScannerConnection
-import android.net.Uri
 import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
-import android.view.ViewTreeObserver
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import android.view.View
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
-import androidx.core.text.toSpannable
-import androidx.core.view.drawToBitmap
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
-import com.example.timetable.MainActivity
 import com.example.timetable.model.Subject
 import com.example.timetable.navigation.Route
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.util.ArrayList
-import kotlin.coroutines.coroutineContext
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
+
 
 class TimeTableViewModel constructor(
     private val context : Context,
@@ -57,17 +32,7 @@ class TimeTableViewModel constructor(
     val state : State<UIState> = _state
 
     init {
-        for(subject in state.value.subjectList){
-            for(timetable in subject.time_table){
-                var list = mutableListOf<String>()
-                if(!_state.value.subjectMap[Pair(timetable[0],timetable[1])].isNullOrEmpty()){
-                    list = _state.value.subjectMap[Pair(timetable[0],timetable[1])]!!
-                }
-                list.add(subject.course_name)
-                _state.value.subjectMap[Pair(timetable[0],timetable[1])] = list
-                _state.value.timeMap[timetable[1]] = true
-            }
-        }
+        initalize()
     }
 
     sealed class UIEvent{
@@ -76,6 +41,7 @@ class TimeTableViewModel constructor(
         data class GetUri(val bitmap : Bitmap, val context : Context) : UIEvent()
 
     }
+
     data class UIState(
         var subjectList : List<Subject>,
         val subjectMap : MutableMap<Pair<String,String>,MutableList<String>> = mutableMapOf(),
@@ -87,14 +53,13 @@ class TimeTableViewModel constructor(
             "06:00-06:50","07:00-07:50"
         ),
         val timeMap : MutableMap<String,Boolean> = mutableMapOf(),
+
     )
 
     fun onEvent(event : UIEvent){
-
         when(event){
             is UIEvent.GetImage -> {
-                val androidView = event.androidView
-        }
+              }
 
             is UIEvent.Loading -> {
 
@@ -103,47 +68,57 @@ class TimeTableViewModel constructor(
                 Log.d(TAG, "converting the Bitmap to URI")
                 viewModelScope.launch {
                     // In your activity or fragment
-
                     // Ensure you have the WRITE_EXTERNAL_STORAGE permission granted before proceeding.
-
-// The content resolver is used to interact with the media store
-                    val resolver: ContentResolver = context.contentResolver
-
-// Create a ContentValues object to hold the image metadata
-                    val contentValues = ContentValues().apply {
-                        put(MediaStore.Images.Media.DISPLAY_NAME, "my_image.jpg")
-                        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-                    }
-
-// Insert the image into the MediaStore
-                    val imageUri: Uri? = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-// Open an output stream to the image Uri and write the image data
-                    imageUri?.let {
-                        val outputStream = resolver.openOutputStream(it)
-                        event.bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-                        outputStream?.close()
-
-                        // Optionally, notify the MediaStore to scan the new image
-                        MediaScannerConnection.scanFile(context, arrayOf(imageUri.path), null, null)
-                    }
-
-                    Log.d(TAG, "onEvent: Saved Image Successfully")
+                    sharedViewModel.bitmap = event.bitmap
+                    saveImg(event.bitmap)
+                    navHostController.navigate(Route.NewScreen.route)
                 }
             }
+            }
+
+    }
+
+    fun saveImg(bitmap : Bitmap){
+        try{
+            val root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
+            Log.d(TAG, "saveImg: $root")
+            val myDir = File("$root/new")
+            val res = myDir.mkdirs()
+            if(res){
+                Log.d(TAG, "saveImg: Dir Created")
+            }
+            else{
+                Log.d(TAG, "saveImg: Dir Not Created")
+            }
+            val file = File(myDir, "${SimpleDateFormat("DDMMYYhhmmss").format(Date())}.jpg")
+            Log.d(TAG, "saveImg: file ->  ${file}")
+            val ostream = FileOutputStream(file)
+            Log.d(TAG, "saveImg: ostream -> $ostream")
+            bitmap.compress(Bitmap.CompressFormat.JPEG,100,ostream)
+            ostream.flush()
+            ostream.close()
+        }catch (e : java.lang.Exception){
+            Log.d(TAG, "saveImg: ${e.toString()}")
         }
-
     }
 
-    fun getImageUriFromBitmap(context: Context, bitmap: Bitmap): Uri {
-        val bytes = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
-        val path = MediaStore.Images.Media.insertImage(context.contentResolver, bitmap, "Title", null)
-        Log.d(TAG, "getImageUriFromBitmap: ${Uri.parse(path)}")
-        Log.d(TAG, "getImageUriFromBitmap: ${state}")
-        return Uri.parse(path)
+    fun initalize(){
+        for(subject in state.value.subjectList){
+            for(timetable in subject.time_table){
+                var list = mutableListOf<String>()
+                if(!_state.value.subjectMap[Pair(timetable[0],timetable[1])].isNullOrEmpty()){
+                    list = _state.value.subjectMap[Pair(timetable[0],timetable[1])]!!
+                }
+                list.add(subject.course_name)
+                _state.value.subjectMap[Pair(timetable[0],timetable[1])] = list
+                _state.value.timeMap[timetable[1]] = true
+            }
+        }
+        Log.d(TAG, "SSSSS: ${state.value.timeMap.size}")
+        Log.d(TAG, "SSSSS: ${state.value.timeMap} ")
     }
+
+
 
 }
 
