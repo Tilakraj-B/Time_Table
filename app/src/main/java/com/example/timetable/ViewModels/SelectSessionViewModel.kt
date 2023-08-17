@@ -13,6 +13,7 @@ import com.example.timetable.model.Subject
 import com.example.timetable.navigation.Route
 import com.example.timetable.repository.SelectSessionRepo
 import kotlinx.coroutines.launch
+import java.lang.Exception
 
 class SelectSessionViewModel constructor(
     private val navController: NavHostController,
@@ -33,6 +34,7 @@ class SelectSessionViewModel constructor(
         object FetchSessionList : UIEvent()
         object FetchSeasonList : UIEvent()
         data class NavigateSelectSubject (val session: String, val season : String): UIEvent()
+        object RetryConnection : UIEvent()
     }
 
      data class UIState(
@@ -45,6 +47,7 @@ class SelectSessionViewModel constructor(
          val sessionList: MutableLiveData<List<String>> = MutableLiveData<List<String>>(),
          val seasonList : MutableLiveData<List<String>> = MutableLiveData<List<String>>(),
          val subjectList: MutableLiveData<List<Subject>> = MutableLiveData<List<Subject>>(),
+         val errorScreen : MutableLiveData<Boolean> = MutableLiveData(false),
          )
 
 
@@ -56,10 +59,21 @@ class SelectSessionViewModel constructor(
                 if(state.value.isFetchingSessionList){
                     viewModelScope.launch{
                         Log.d(TAG,"fetching the session list")
-                        repo.getSessionList();
-                        _state.value = state.value.copy(
-                            sessionList = repo.sessionList
-                        )
+                        try {
+                            repo.getSessionList();
+                            _state.value = state.value.copy(
+                                sessionList = repo.sessionList,
+                                errorScreen = MutableLiveData(false)
+                            )
+                        }catch (e:Exception){
+                            Log.d(TAG, "onEvent: Failed to get the session List")
+                            _state.value = state.value.copy(
+                                errorScreen = MutableLiveData(true)
+                            )
+                            Toast.makeText(context,"Failed to Connect to Network",Toast.LENGTH_LONG).show()
+
+                        }
+
                         _state.value = state.value.copy(
                             isFetchingSessionList = false
                         )
@@ -70,14 +84,31 @@ class SelectSessionViewModel constructor(
             is UIEvent.FetchSeasonList -> {
 
                     viewModelScope.launch {
-                        Log.d(TAG, "fetching the season list")
-                        repo.getSeasonList(state.value.selectedSession)
-                        _state.value = state.value.copy(
-                            seasonList = repo.seasonList
-                        )
-                        _state.value = state.value.copy(
-                            isFetchingSeasonList = false
-                        )
+                            Log.d(TAG, "fetching the season list")
+                            try {
+                                repo.getSeasonList(state.value.selectedSession)
+                                _state.value = state.value.copy(
+                                    seasonList = repo.seasonList,
+                                    errorScreen = MutableLiveData(false)
+                                )
+
+                            } catch (e: Exception) {
+                                Log.d(TAG, "onEvent: Failed to Get Season List")
+                                _state.value = state.value.copy(
+                                    errorScreen = MutableLiveData(true)
+                                )
+                                Toast.makeText(
+                                    context,
+                                    "Failed to Connect to Network",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+
+
+                            _state.value = state.value.copy(
+                                isFetchingSeasonList = false
+                            )
+
                     }
 
 
@@ -87,7 +118,6 @@ class SelectSessionViewModel constructor(
                 _state.value = state.value.copy(
                     isSessionExpanded = !state.value.isSessionExpanded
                 )
-                Log.d(TAG,"${state.value.isSessionExpanded}")
             }
 
             is UIEvent.ExpandSeasonList ->{
@@ -96,8 +126,9 @@ class SelectSessionViewModel constructor(
                 }
                 else{
                     _state.value = state.value.copy(
-                        isSeasonExpanded = !state.value.isSeasonExpanded
+                        isSeasonExpanded = !state.value.isSeasonExpanded,
                     )
+                    onEvent(UIEvent.FetchSeasonList)
                     Log.d(TAG,"${state.value.isSeasonExpanded}")
                 }
             }
@@ -123,6 +154,12 @@ class SelectSessionViewModel constructor(
                 else{
                     navController.navigate(Route.SelectSubjectScreen.route + "/${event.session}" + "/${event.season}")
                 }
+            }
+
+            is UIEvent.RetryConnection -> {
+                    _state.value = state.value.copy(
+                        isFetchingSessionList = true
+                    )
             }
 
         }

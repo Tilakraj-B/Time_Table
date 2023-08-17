@@ -10,18 +10,21 @@ import java.util.concurrent.TimeUnit
 object SelectSessionRetrofitInstance {
     private val baseUrl = "http://10.0.2.2:3000/"
 
-    val selectSessionApi : SelectSessionApi by lazy{
-        Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .client(OkHttpClient.Builder().also { client->
-                client.connectTimeout(30,TimeUnit.SECONDS)
-                client.readTimeout(30,TimeUnit.SECONDS)
-                val interceptor = HttpLoggingInterceptor()
-                interceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
-                client.addInterceptor(interceptor)
-            }.build())
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(SelectSessionApi::class.java)
-    }
+
+        val selectSessionApi : SelectSessionApi by lazy{
+            Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .client(OkHttpClient.Builder().also { client->
+                    client.connectTimeout(30,TimeUnit.SECONDS)
+                    client.readTimeout(30,TimeUnit.SECONDS)
+                    val interceptor = HttpLoggingInterceptor()
+                    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
+                    client.addInterceptor(interceptor)
+                }.build())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(SelectSessionApi::class.java)
+        }
+
+
 }

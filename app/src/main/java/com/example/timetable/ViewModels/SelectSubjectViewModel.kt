@@ -2,11 +2,13 @@ package com.example.timetable.ViewModels
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -18,6 +20,7 @@ import com.example.timetable.navigation.Route
 import com.example.timetable.repository.SelectSubjectRepo
 import kotlinx.coroutines.launch
 import org.json.JSONObject.NULL
+import java.lang.Exception
 import kotlin.collections.ArrayList
 
 class SelectSubjectViewModel constructor(
@@ -41,20 +44,24 @@ class SelectSubjectViewModel constructor(
          object FetchSubjectList : UIEvent()
          data class OnSearchTextChange(val searchText : String) : UIEvent()
          data class ChangeFocus(val focusRequester: FocusRequester,val focusManager: FocusManager) : UIEvent()
-         data class RemoveFromSelectedList(val subject : Subject) : UIEvent()
+         data class RemoveFromSelectedList(val subject : Subject, val color : Color) : UIEvent()
+         data class ChangeColor(val color : Color) : UIEvent()
          object NavigateTimeTable : UIEvent()
-         object ChangeStateColorPicker : UIEvent()
+         data class ChangeStateColorPicker(val subject: Subject) : UIEvent()
+         object RetryScreen : UIEvent()
      }
 
      data class UIState(
          var isSearchingText : Boolean = false,
          var isSubjectExpanded: Boolean = false,
          var isFetchingSubjectList: Boolean = true,
-         var selectedSubjectList: MutableLiveData<MutableList<Subject>> = MutableLiveData(mutableListOf()),
+         var selectedSubjectList: MutableLiveData<MutableList<Pair<Subject, Color>>> = MutableLiveData(mutableListOf()),
          val allSubjectList: MutableLiveData<List<Subject>> = MutableLiveData<List<Subject>>(),
          val subjectList : MutableLiveData<List<Subject>> = allSubjectList,
          var isFocusedOnTextField : Boolean = false,
-         var colorPickerDialogState : MutableLiveData<Boolean> = MutableLiveData(false)
+         var colorPickerDialogState : MutableLiveData<Boolean> = MutableLiveData(false),
+         var currentSubject : MutableLiveData<Subject> = MutableLiveData(),
+         val errorScreen : MutableLiveData<Boolean> = MutableLiveData(false)
      )
 
 
@@ -64,12 +71,25 @@ class SelectSubjectViewModel constructor(
                 if(state.value.isFetchingSubjectList){
                     Log.d(TAG,"event -> FetchSubjectList")
                     viewModelScope.launch {
-                        repo.getSubjectList(session,season)
-                        _state.value = state.value.copy(
-                            allSubjectList = repo.subjectList,
-                            subjectList = repo.subjectList,
-                            isFetchingSubjectList = false
-                        )
+                        try {
+                            repo.getSubjectList(session,season)
+                            _state.value = state.value.copy(
+                                allSubjectList = repo.subjectList,
+                                subjectList = repo.subjectList,
+                                isFetchingSubjectList = false,
+                                errorScreen = MutableLiveData(false)
+                            )
+
+                        }catch (e : Exception){
+                            Log.e(TAG, e.toString())
+                            Log.d(TAG, "onEvent: Failed to Connect to Network")
+                            _state.value = state.value.copy(
+                                errorScreen = MutableLiveData(true),
+                                isFetchingSubjectList = false
+                            )
+                            Toast.makeText(context,"Failed to Connect to Network",Toast.LENGTH_LONG).show()
+                        }
+
                     }
                 }
             }
@@ -81,8 +101,9 @@ class SelectSubjectViewModel constructor(
             }
             is UIEvent.SelectedSubject -> {
                 val list = state.value.selectedSubjectList.value
-                if(!list!!.contains(event.currentSubject)){
-                    list.add(event.currentSubject)
+
+                if(list!!.find { it.first == event.currentSubject} == null) {
+                    list.add(Pair(event.currentSubject, Color.White))
                 }
 
                 _state.value = state.value.copy(
@@ -132,7 +153,7 @@ class SelectSubjectViewModel constructor(
 
             is UIEvent.RemoveFromSelectedList -> {
                 val list = state.value.selectedSubjectList.value
-                list!!.remove(event.subject)
+                list!!.remove(Pair(event.subject,event.color))
                 _state.value = state.value.copy(
                     selectedSubjectList = MutableLiveData(list)
                 )
@@ -147,7 +168,28 @@ class SelectSubjectViewModel constructor(
 
             is UIEvent.ChangeStateColorPicker -> {
                 _state.value = state.value.copy(
+                    colorPickerDialogState = MutableLiveData(!state.value.colorPickerDialogState.value!!),
+                    currentSubject = MutableLiveData(event.subject)
+                )
+            }
+
+            is UIEvent.ChangeColor ->{
+                _state.value = state.value.copy(
+                    selectedSubjectList = state.value.selectedSubjectList.apply {
+                        val sub = this.value!!.find{
+                            it.first == state.value.currentSubject.value
+                        }
+                        this.value!!.remove(sub)
+                        this.value!!.add(Pair(sub!!.first,event.color))
+                    },
                     colorPickerDialogState = MutableLiveData(!state.value.colorPickerDialogState.value!!)
+                )
+            }
+
+            is UIEvent.RetryScreen -> {
+                _state.value = state.value.copy(
+                    errorScreen = MutableLiveData(true),
+                    isFetchingSubjectList = true
                 )
             }
         }

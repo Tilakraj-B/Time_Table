@@ -1,6 +1,5 @@
 package com.example.timetable.navigation
 
-import New
 import SelectSession
 import TimeTable
 import android.util.Log
@@ -83,13 +82,6 @@ fun NavHost(
                 )
             )
         }
-
-        composable(
-            route = Route.NewScreen.route
-        ){
-            New(viewModel = sharedViewModel)
-        }
-
 
     }
 

@@ -1,5 +1,6 @@
 
 import android.graphics.Bitmap
+import android.graphics.Paint.Align
 import android.icu.text.ListFormatter.Width
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -151,7 +152,8 @@ fun TimeTable(
 
 
     Box(
-        modifier = Modifier
+        modifier = Modifier,
+        contentAlignment = Alignment.Center
     ) {
 
 
@@ -240,12 +242,12 @@ fun TimeTable(
                             for (time in state.timeList) {
                                 if (state.timeMap[time] == true) {
 
-                                    var subjectList = mutableListOf<String>()
+                                    var subjectList = mutableListOf<Pair<String,Color>>()
                                     if (state.subjectMap.contains(Pair(day, time))) {
                                         subjectList = state.subjectMap[Pair(day, time)]!!
                                     }
                                     if (subjectList.size == 0) {
-                                        subjectList.add(" ")
+                                        subjectList.add(Pair("",Color.White))
                                     }
                                     Box(
                                         modifier = Modifier
@@ -262,9 +264,10 @@ fun TimeTable(
                                                     modifier = Modifier
                                                         .width(blockWidth)
                                                         .padding(5.dp)
+                                                        .background(subject.second)
                                                 ) {
                                                     Text(
-                                                        text = subject,
+                                                        text = subject.first,
                                                         style = textStyle,
                                                     )
                                                 }
@@ -284,7 +287,7 @@ fun TimeTable(
             Button(
                 onClick = {
                     val image = bitmapImage.invoke()
-                    viewModel.onEvent(TimeTableViewModel.UIEvent.GetUri(image, context))
+                    viewModel.onEvent(TimeTableViewModel.UIEvent.SaveImage(image, context))
                 }
 
             ) {

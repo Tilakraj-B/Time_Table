@@ -4,5 +4,4 @@ sealed class Route(val route : String){
     object SelectSessionScreen : Route("select_session_screen")
     object SelectSubjectScreen : Route("select_subject_screen")
     object TimeTableScreen : Route("time_table_screen")
-    object NewScreen : Route("new_screen")
 }
