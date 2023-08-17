@@ -18,4 +18,12 @@ The College Timetable Viewer App is a user-friendly Android application designed
 
 - **Database**: MongoDB serves as the database to store timetable data. Its flexibility accommodates the dynamic nature of class schedules.
 
+- **Kotlin**: The app is built using Kotlin programming language, which provides a modern and concise syntax for Android development.
+
+- **Retrofit**: To integrate the different Api to application
+  
+- **Architecutre**: The architecture of the application is based on MVVM architecture.
+
+  
+
 
